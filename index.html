@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KILL 'EM ALL - 3D Sci-Fi Top-Down Shooter</title>
+  <meta name="description" content="Futuristic 3D top-down sci-fi space station shooter crawling with humanoid cyber-mutants. Built with Three.js.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+  
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- WebGL Render Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Interface Layer -->
+  <div id="hud">
+    <!-- Top Bar Status -->
+    <div class="top-bar">
+      <div class="player-stats">
+        <div class="stat-group">
+          <div class="stat-label">HEALTH</div>
+          <div class="bar-bg"><div id="health-bar" class="bar-fill health"></div></div>
+          <span id="health-text" class="bar-value">100 / 100</span>
+        </div>
+        <div class="stat-group">
+          <div class="stat-label">SHIELD</div>
+          <div class="bar-bg"><div id="shield-bar" class="bar-fill shield"></div></div>
+          <span id="shield-text" class="bar-value">100 / 100</span>
+        </div>
+      </div>
+
+      <div class="wave-info">
+        <div class="location-tag">SECTOR 7 • DEEP SPACE VESSEL "USG ISIMURA"</div>
+        <div class="wave-counter">WAVE <span id="wave-num">1</span></div>
+        <div class="enemy-counter">MUTANTS: <span id="enemy-left">0</span></div>
+      </div>
+
+      <div class="score-box">
+        <div class="score-title">SCORE</div>
+        <div id="score-val" class="score-num">000,000</div>
+        <div class="multiplier-tag">MULTIPLIER <span id="mult-val">x1.0</span></div>
+      </div>
+    </div>
+
+    <!-- Minimap Radar (Top Right) -->
+    <div class="radar-box">
+      <div class="radar-title">TACTICAL RADAR</div>
+      <canvas id="radar-canvas" width="160" height="160"></canvas>
+      <div class="radar-scanlines"></div>
+    </div>
+
+    <!-- Banner Notifications -->
+    <div id="banner" class="banner hidden">
+      <div id="banner-title" class="banner-title">CONTAINMENT BREACH</div>
+      <div id="banner-sub" class="banner-sub">HUMANOID SWARM APPROACHING</div>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="interact-prompt" class="interact-prompt hidden">
+      <kbd>E</kbd> <span>ACCESS UPGRADE TERMINAL</span>
+    </div>
+
+    <!-- Bottom Controls & Weapons HUD -->
+    <div class="bottom-bar">
+      <!-- Dodge Skill -->
+      <div class="ability-box">
+        <div id="dash-cd" class="ability-cd"></div>
+        <div class="ability-key">SHIFT / SPACE</div>
+        <div class="ability-name">DODGE JET</div>
+      </div>
+
+      <!-- Weapon Slots -->
+      <div class="weapons-container">
+        <div id="weapon-1" class="weapon-card active">
+          <span class="w-key">1</span>
+          <div class="w-info">
+            <div class="w-name">PLASMA HANDGUN</div>
+            <div class="w-ammo" id="ammo-1">10 / ∞</div>
+          </div>
+        </div>
+
+        <div id="weapon-2" class="weapon-card">
+          <span class="w-key">2</span>
+          <div class="w-info">
+            <div class="w-name">SCATTER SHOTGUN</div>
+            <div class="w-ammo" id="ammo-2">24 / 24</div>
+          </div>
+        </div>
+
+        <div id="weapon-3" class="weapon-card">
+          <span class="w-key">3</span>
+          <div class="w-info">
+            <div class="w-name">PLASMA RAILGUN</div>
+            <div class="w-ammo" id="ammo-3">8 / 8</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sound & Settings -->
+      <div class="controls-box">
+        <button id="btn-flashlight" class="hud-btn">🔦 FLASHLIGHT: ON [F]</button>
+        <button id="btn-audio" class="hud-btn">🔊 AUDIO: ON</button>
+        <button id="btn-pause" class="hud-btn">⏸ ESC</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upgrade Modal between Waves -->
+  <div id="upgrade-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">UPGRADE TERMINAL</h2>
+      <p class="modal-sub">SELECT REINFORCEMENT POWER-UP TO CONTINUE</p>
+      
+      <div class="upgrades-grid">
+        <button class="upgrade-btn" data-upgrade="health">
+          <div class="u-icon">❤️</div>
+          <div class="u-title">NANO-HEAL STIM</div>
+          <div class="u-desc">+30 Max Health & Full Heal</div>
+        </button>
+
+        <button class="upgrade-btn" data-upgrade="shield">
+          <div class="u-icon">🛡️</div>
+          <div class="u-title">PLASMA SHIELD</div>
+          <div class="u-desc">+25 Max Shield & Faster Recharge</div>
+        </button>
+
+        <button class="upgrade-btn" data-upgrade="fireRate">
+          <div class="u-icon">⚡</div>
+          <div class="u-title">ACCELERATOR MODULE</div>
+          <div class="u-desc">+25% Firing Rate All Weapons</div>
+        </button>
+
+        <button class="upgrade-btn" data-upgrade="damage">
+          <div class="u-icon">💥</div>
+          <div class="u-title">OVERPOWERED CHARGE</div>
+          <div class="u-desc">+20% All Weapon Damage</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="start-screen" class="overlay">
+    <div class="overlay-card">
+      <div class="glitch-title" data-text="KILL 'EM ALL">KILL 'EM ALL</div>
+      <div class="tagline">3D TOP-DOWN SPACECRAFT SURVIVAL SHOOTER</div>
+
+      <div class="instructions-panel">
+        <h3>COMBAT CONTROLS</h3>
+        <div class="controls-grid">
+          <div class="ctrl-item"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span>Movement</span></div>
+          <div class="ctrl-item"><kbd>MOUSE</kbd> <span>Aim & Target</span></div>
+          <div class="ctrl-item"><kbd>LEFT CLICK</kbd> <span>Fire Weapon</span></div>
+          <div class="ctrl-item"><kbd>G</kbd> / <kbd>Q</kbd> / <kbd>RIGHT CLICK</kbd> <span>Throw Frag Grenade</span></div>
+          <div class="ctrl-item"><kbd>SPACE</kbd> / <kbd>SHIFT</kbd> <span>Dodge Roll</span></div>
+          <div class="ctrl-item"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <span>Switch Weapon</span></div>
+          <div class="ctrl-item"><kbd>R</kbd> <span>Reload Weapon</span></div>
+        </div>
+      </div>
+
+      <button id="btn-start" class="start-btn">INITIATE DISPATCH</button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen" class="overlay hidden">
+    <div class="overlay-card danger">
+      <h1 class="dead-title">SIGNAL LOST</h1>
+      <p class="dead-sub">VESSEL OVERRUN BY HUMANOID HOSTILES</p>
+      
+      <div class="summary-box">
+        <div>WAVES SURVIVED: <span id="final-wave" class="highlight">0</span></div>
+        <div>HUMANOIDS NEUTRALIZED: <span id="final-kills" class="highlight">0</span></div>
+        <div>FINAL SCORE: <span id="final-score" class="highlight">0</span></div>
+      </div>
+
+      <button id="btn-restart" class="start-btn">REDEPLOY MARINE</button>
+    </div>
+  </div>
+
+  <!-- Pause Menu Screen -->
+  <div id="pause-screen" class="overlay hidden">
+    <div class="overlay-card">
+      <h1 class="modal-title" style="color: var(--neon-cyan);">PAUSE MENU</h1>
+      <p class="modal-sub">TACTICAL OPERATION SUSPENDED</p>
+      
+      <div class="instructions-panel" style="margin: 20px 0;">
+        <h3>MISSION CONTROLS</h3>
+        <div class="controls-grid">
+          <div class="ctrl-item"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>ARROWS</kbd> <span>Aim-Relative Move</span></div>
+          <div class="ctrl-item"><kbd>MOUSE</kbd> <span>Aim & Target</span></div>
+          <div class="ctrl-item"><kbd>LEFT CLICK</kbd> <span>Fire Primary Weapon</span></div>
+          <div class="ctrl-item"><kbd>G</kbd> / <kbd>Q</kbd> / <kbd>RIGHT CLICK</kbd> <span>Throw Frag Grenade</span></div>
+          <div class="ctrl-item"><kbd>SPACE</kbd> / <kbd>SHIFT</kbd> <span>Evasive Dodge Roll</span></div>
+          <div class="ctrl-item"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <span>Switch Weapon</span></div>
+          <div class="ctrl-item"><kbd>ESC</kbd> <span>Resume / Pause Game</span></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 15px; justify-content: center; margin-top: 15px;">
+        <button id="btn-resume" class="start-btn">RESUME OPERATION</button>
+        <button id="btn-pause-restart" class="start-btn" style="background: linear-gradient(135deg, #aa0033, #ff0055);">RESTART MISSION</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
