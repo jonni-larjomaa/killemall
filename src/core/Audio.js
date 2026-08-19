@@ -71,9 +71,21 @@ export class SoundEngine {
 
       // --- REAL TECHNO MUSIC PLAYER ---
       this.musicPlayer = new Tone.Player({
-        url: getAudioUrl('audio/music/techno_track.wav'),
+        url: getAudioUrl('audio/music/techno_track.mp3'),
         loop: true,
-        volume: -4
+        volume: -4,
+        onload: () => {
+          if (this.musicStarted) {
+            Tone.getTransport().stop();
+            if (this.musicPlayer.state !== 'started') {
+              try {
+                this.musicPlayer.start();
+              } catch (e) {
+                console.warn("Music play on load error:", e);
+              }
+            }
+          }
+        }
       }).connect(this.musicGain);
 
       // --- SFX INSTRUMENTS ---
@@ -289,15 +301,40 @@ export class SoundEngine {
     if (Tone.getContext().state !== 'running') {
       await Tone.start();
     }
-    if (this.musicPlayer && this.musicPlayer.state !== 'started') {
-      this.musicPlayer.start();
-    }
     this.musicStarted = true;
+
+    if (this.musicPlayer) {
+      this.musicPlayer.autostart = true;
+      if (this.musicPlayer.loaded) {
+        if (this.musicPlayer.state !== 'started') {
+          try {
+            this.musicPlayer.start();
+          } catch (e) {
+            console.warn("Music start error:", e);
+          }
+        }
+      } else {
+        // Fallback to synth transport while MP3 is loading over network
+        if (Tone.getTransport().state !== 'started') {
+          Tone.getTransport().start();
+        }
+      }
+    } else {
+      if (Tone.getTransport().state !== 'started') {
+        Tone.getTransport().start();
+      }
+    }
   }
 
   pauseTechnoTrack() {
-    if (this.musicPlayer && this.musicPlayer.state === 'started') {
-      this.musicPlayer.pause();
+    if (this.musicPlayer) {
+      this.musicPlayer.autostart = false;
+      if (this.musicPlayer.state === 'started') {
+        this.musicPlayer.pause();
+      }
+    }
+    if (Tone.getTransport().state === 'started') {
+      Tone.getTransport().pause();
     }
   }
 
@@ -308,19 +345,41 @@ export class SoundEngine {
     if (Tone.getContext().state !== 'running') {
       await Tone.start();
     }
+    this.musicStarted = true;
+
     if (this.musicPlayer) {
-      if (this.musicPlayer.state === 'paused' || this.musicPlayer.state === 'stopped') {
-        this.musicPlayer.start();
+      this.musicPlayer.autostart = true;
+      if (this.musicPlayer.loaded) {
+        if (this.musicPlayer.state === 'paused' || this.musicPlayer.state === 'stopped') {
+          try {
+            this.musicPlayer.start();
+          } catch (e) {
+            console.warn("Music resume error:", e);
+          }
+        }
+      } else {
+        if (Tone.getTransport().state !== 'started') {
+          Tone.getTransport().start();
+        }
+      }
+    } else {
+      if (Tone.getTransport().state !== 'started') {
+        Tone.getTransport().start();
       }
     }
-    this.musicStarted = true;
   }
 
   stopTechnoTrack() {
-    if (this.musicPlayer && (this.musicPlayer.state === 'started' || this.musicPlayer.state === 'paused')) {
-      this.musicPlayer.stop();
-    }
     this.musicStarted = false;
+    if (this.musicPlayer) {
+      this.musicPlayer.autostart = false;
+      if (this.musicPlayer.state === 'started' || this.musicPlayer.state === 'paused') {
+        this.musicPlayer.stop();
+      }
+    }
+    if (Tone.getTransport().state === 'started' || Tone.getTransport().state === 'paused') {
+      Tone.getTransport().stop();
+    }
   }
 
   toggleMute() {
