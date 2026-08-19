@@ -1,5 +1,17 @@
 import * as Tone from 'tone';
 
+// Automatically resume AudioContext on first user interaction anywhere on the page
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    if (Tone.getContext().state !== 'running') {
+      Tone.start().catch(() => {});
+    }
+  };
+  ['click', 'keydown', 'touchstart', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, unlockAudio, { capture: true });
+  });
+}
+
 export class SoundEngine {
   constructor() {
     this.muted = false;
@@ -32,14 +44,18 @@ export class SoundEngine {
 
   async init() {
     if (this.initialized) {
-      if (Tone.getContext().state !== 'running') {
-        await Tone.start();
-      }
+      try {
+        if (Tone.getContext().state !== 'running') {
+          await Tone.start();
+        }
+      } catch (e) {}
       return;
     }
 
     try {
-      await Tone.start();
+      if (Tone.getContext().state !== 'running') {
+        await Tone.start();
+      }
       Tone.getDestination().volume.value = -4; // safe master headroom
 
       // Master Music Volume Bus
