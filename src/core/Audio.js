@@ -55,20 +55,23 @@ export class SoundEngine {
 
       this.sfxGain = new Tone.Gain(1.25).connect(this.sfxCompressor);
 
+      const baseUrl = import.meta.env.BASE_URL || './';
+      const getAudioUrl = (relPath) => `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}${relPath.startsWith('/') ? relPath.slice(1) : relPath}`;
+
       // --- REAL AUDIO SAMPLE PLAYERS ---
       this.samplePlayers = new Tone.Players({
-        pulse: '/audio/sfx/pulse_rifle.wav',
-        shotgun: '/audio/sfx/shotgun.mp3',
-        railgun: '/audio/sfx/railgun.wav',
-        reload: '/audio/sfx/reload.mp3',
-        explosion: '/audio/sfx/explosion.wav',
-        emptyClick: '/audio/sfx/empty_click.wav',
-        flashlight: '/audio/sfx/flashlight_click.wav'
+        pulse: getAudioUrl('audio/sfx/pulse_rifle.wav'),
+        shotgun: getAudioUrl('audio/sfx/shotgun.mp3'),
+        railgun: getAudioUrl('audio/sfx/railgun.wav'),
+        reload: getAudioUrl('audio/sfx/reload.mp3'),
+        explosion: getAudioUrl('audio/sfx/explosion.wav'),
+        emptyClick: getAudioUrl('audio/sfx/empty_click.wav'),
+        flashlight: getAudioUrl('audio/sfx/flashlight_click.wav')
       }).connect(this.sfxGain);
 
       // --- REAL TECHNO MUSIC PLAYER ---
       this.musicPlayer = new Tone.Player({
-        url: '/audio/music/techno_track.wav',
+        url: getAudioUrl('audio/music/techno_track.wav'),
         loop: true,
         volume: -4
       }).connect(this.musicGain);

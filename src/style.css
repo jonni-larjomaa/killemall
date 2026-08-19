@@ -196,7 +196,7 @@ body, html {
 /* Tactical Minimap Radar */
 .radar-box {
   position: absolute;
-  top: 100px;
+  top: 120px;
   right: 20px;
   width: 160px;
   height: 160px;

@@ -126,62 +126,124 @@ export class UIManager {
     const w = this.radarCanvas.width;
     const h = this.radarCanvas.height;
     const center = w / 2;
-    const scale = w / game.level.mapSize; // Map to radar scale
+    const scale = w / game.level.mapSize; // Radar scale (pixels per world unit)
+
+    const playerPos = game.player.position;
+    const px = playerPos.x;
+    const pz = playerPos.z;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+    // 1. World Grid Lines (Scrolling with player movement)
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.08)';
+    ctx.lineWidth = 1;
+    const gridSize = 20; // 20 units per grid line
+    const startX = Math.floor((px - game.level.mapSize) / gridSize) * gridSize;
+    const endX = Math.ceil((px + game.level.mapSize) / gridSize) * gridSize;
+    const startZ = Math.floor((pz - game.level.mapSize) / gridSize) * gridSize;
+    const endZ = Math.ceil((pz + game.level.mapSize) / gridSize) * gridSize;
+
+    for (let gx = startX; gx <= endX; gx += gridSize) {
+      const rx = center + (gx - px) * scale;
+      if (rx >= 0 && rx <= w) {
+        ctx.beginPath(); ctx.moveTo(rx, 0); ctx.lineTo(rx, h); ctx.stroke();
+      }
+    }
+    for (let gz = startZ; gz <= endZ; gz += gridSize) {
+      const ry = center + (gz - pz) * scale;
+      if (ry >= 0 && ry <= h) {
+        ctx.beginPath(); ctx.moveTo(0, ry); ctx.lineTo(w, ry); ctx.stroke();
+      }
+    }
+
+    // 2. Fixed Radar Crosshair (Centered on player)
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.2)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(center, 0); ctx.lineTo(center, h); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, center); ctx.lineTo(w, center); ctx.stroke();
 
-    // Draw Barrels
+    // 3. Draw Outer Map Perimeter Boundary
+    const halfMap = game.level.mapSize / 2;
+    const mapMinX = center + (-halfMap - px) * scale;
+    const mapMinY = center + (-halfMap - pz) * scale;
+    const mapSizePx = game.level.mapSize * scale;
+
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(mapMinX, mapMinY, mapSizePx, mapSizePx);
+
+    // 4. Draw Internal Wall Colliders
+    ctx.fillStyle = 'rgba(0, 243, 255, 0.15)';
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)';
+    ctx.lineWidth = 1;
+    for (let col of game.level.colliders) {
+      const rx = center + (col.min.x - px) * scale;
+      const ry = center + (col.min.z - pz) * scale;
+      const rw = (col.max.x - col.min.x) * scale;
+      const rh = (col.max.z - col.min.z) * scale;
+
+      ctx.fillRect(rx, ry, Math.max(rw, 2), Math.max(rh, 2));
+      ctx.strokeRect(rx, ry, Math.max(rw, 2), Math.max(rh, 2));
+    }
+
+    // 5. Draw Explosive Barrels
     ctx.fillStyle = '#ffaa00';
     for (let b of game.level.barrels) {
       if (!b.destroyed) {
-        const rx = center + b.position.x * scale;
-        const ry = center + b.position.z * scale;
+        const rx = center + (b.position.x - px) * scale;
+        const ry = center + (b.position.z - pz) * scale;
         ctx.fillRect(rx - 2, ry - 2, 4, 4);
       }
     }
 
-    // Draw Enemies (Red Dots)
-    ctx.fillStyle = '#ff0055';
+    // 6. Draw Terminal Pod (if active)
+    if (game.level.terminalPod) {
+      const tx = center + (game.level.terminalPod.position.x - px) * scale;
+      const ty = center + (game.level.terminalPod.position.z - pz) * scale;
+
+      ctx.fillStyle = '#00f3ff';
+      ctx.shadowColor = '#00f3ff';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(tx - 4, ty - 4, 8, 8);
+      ctx.shadowBlur = 0;
+    }
+
+    // 7. Draw Enemies (Red Dots / Brutes)
     for (let e of game.enemies) {
       if (!e.isDead) {
-        const rx = center + e.position.x * scale;
-        const ry = center + e.position.z * scale;
+        const rx = center + (e.position.x - px) * scale;
+        const ry = center + (e.position.z - pz) * scale;
+
+        ctx.fillStyle = e.type === 'brute' ? '#ff0033' : '#ff0055';
         ctx.beginPath();
         ctx.arc(rx, ry, e.type === 'brute' ? 4 : 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // Draw Player (Cyan Icon with Direction Cone)
-    const px = center + game.player.position.x * scale;
-    const py = center + game.player.position.z * scale;
-
+    // 8. Draw Player (Always at Radar Center)
     ctx.fillStyle = '#00f3ff';
     ctx.shadowColor = '#00f3ff';
     ctx.shadowBlur = 6;
     ctx.beginPath();
-    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.arc(center, center, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Direction line to mouse target
-    const aimVector = game.input.aimPointWorld.clone().sub(game.player.position);
+    // 9. Direction / Aim Line from Player Center
+    const aimVector = game.input.aimPointWorld.clone().sub(playerPos);
     aimVector.y = 0;
-    aimVector.normalize().multiplyScalar(12);
-    const ax = px + aimVector.x * scale;
-    const ay = py + aimVector.z * scale;
+    if (aimVector.lengthSq() > 0.001) {
+      aimVector.normalize().multiplyScalar(14);
+      const ax = center + aimVector.x;
+      const ay = center + aimVector.z;
 
-    ctx.strokeStyle = '#00f3ff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(px, py);
-    ctx.lineTo(ax, ay);
-    ctx.stroke();
+      ctx.strokeStyle = '#00f3ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(center, center);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+    }
   }
 }
