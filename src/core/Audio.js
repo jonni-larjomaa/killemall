@@ -4,7 +4,7 @@ import * as Tone from 'tone';
 if (typeof window !== 'undefined') {
   const unlockAudio = () => {
     if (Tone.getContext().state !== 'running') {
-      Tone.start().catch(() => {});
+      Tone.start().catch(() => { });
     }
   };
   ['click', 'keydown', 'touchstart', 'pointerdown'].forEach(evt => {
@@ -48,7 +48,7 @@ export class SoundEngine {
         if (Tone.getContext().state !== 'running') {
           await Tone.start();
         }
-      } catch (e) {}
+      } catch (e) { }
       return;
     }
 
@@ -76,9 +76,9 @@ export class SoundEngine {
 
       // --- REAL AUDIO SAMPLE PLAYERS ---
       this.samplePlayers = new Tone.Players({
-        pulse: getAudioUrl('audio/sfx/pulse_rifle.wav'),
+        pulse: getAudioUrl('audio/sfx/pulse_rifle.mp3'),
         shotgun: getAudioUrl('audio/sfx/shotgun.mp3'),
-        railgun: getAudioUrl('audio/sfx/railgun.wav'),
+        railgun: getAudioUrl('audio/sfx/railgun.mp3'),
         reload: getAudioUrl('audio/sfx/reload.mp3'),
         explosion: getAudioUrl('audio/sfx/explosion.wav'),
         emptyClick: getAudioUrl('audio/sfx/empty_click.wav'),
