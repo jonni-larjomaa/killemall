@@ -31,6 +31,13 @@ export class Player {
     this.reloadAnimTime = 0;
     this.reloadAnimDuration = 1.5;
 
+    // Weapon Switching Animation
+    this.isSwitchingWeapon = false;
+    this.switchAnimTime = 0;
+    this.switchAnimDuration = 0.35;
+    this.targetWeaponIndex = 0;
+    this.hasSwappedModelInAnim = false;
+
     // Weapon Sway & Recoil
     this.recoilOffset = 0;
     this.recoilRotation = 0;
@@ -41,6 +48,145 @@ export class Player {
     this.scene.add(this.mesh);
 
     this.setupFlashlight();
+  }
+
+  create3DWeapons() {
+    const pivot = new THREE.Group();
+    pivot.position.set(0.35, 1.25, 0.65);
+
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x11151a, metalness: 0.85, roughness: 0.2 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x253040, metalness: 0.9, roughness: 0.3 });
+    const cyanGlow = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const amberGlow = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    const crimsonGlow = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+
+    // ==========================================
+    // 1. PLASMA HANDGUN (Index 0)
+    // ==========================================
+    const handgun = new THREE.Group();
+    
+    // Main Body / Receiver
+    const hBodyGeo = new THREE.BoxGeometry(0.12, 0.2, 0.5);
+    const hBody = new THREE.Mesh(hBodyGeo, darkMat);
+    handgun.add(hBody);
+
+    // Pistol Barrel
+    const hBarrelGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 12);
+    const hBarrel = new THREE.Mesh(hBarrelGeo, metalMat);
+    hBarrel.rotation.x = Math.PI / 2;
+    hBarrel.position.set(0, 0.03, 0.25);
+    handgun.add(hBarrel);
+
+    // Cyan Energy Cell underneath
+    const hCellGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.25, 8);
+    const hCell = new THREE.Mesh(hCellGeo, cyanGlow);
+    hCell.rotation.x = Math.PI / 2;
+    hCell.position.set(0, -0.07, 0.05);
+    handgun.add(hCell);
+
+    // Muzzle Emitter Tip
+    const hTipGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.08, 12);
+    const hTip = new THREE.Mesh(hTipGeo, cyanGlow);
+    hTip.rotation.x = Math.PI / 2;
+    hTip.position.set(0, 0.03, 0.38);
+    handgun.add(hTip);
+    const handgunMuzzle = hTip;
+
+    pivot.add(handgun);
+
+    // ==========================================
+    // 2. SCATTER SHOTGUN (Index 1)
+    // ==========================================
+    const shotgun = new THREE.Group();
+
+    // Heavy Rectangular Receiver
+    const sBodyGeo = new THREE.BoxGeometry(0.22, 0.26, 0.7);
+    const sBody = new THREE.Mesh(sBodyGeo, darkMat);
+    shotgun.add(sBody);
+
+    // Twin Barrels (Left & Right)
+    const sBarrelGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.45, 12);
+    const sBarrelL = new THREE.Mesh(sBarrelGeo, metalMat);
+    sBarrelL.rotation.x = Math.PI / 2;
+    sBarrelL.position.set(-0.06, 0.04, 0.38);
+    
+    const sBarrelR = new THREE.Mesh(sBarrelGeo, metalMat);
+    sBarrelR.rotation.x = Math.PI / 2;
+    sBarrelR.position.set(0.06, 0.04, 0.38);
+    shotgun.add(sBarrelL);
+    shotgun.add(sBarrelR);
+
+    // Under-barrel Heavy Pump Action Handle
+    const sPumpGeo = new THREE.BoxGeometry(0.2, 0.14, 0.35);
+    const sPumpMat = new THREE.MeshStandardMaterial({ color: 0x332211, roughness: 0.8 });
+    const sPump = new THREE.Mesh(sPumpGeo, sPumpMat);
+    sPump.position.set(0, -0.1, 0.25);
+    shotgun.add(sPump);
+
+    // Amber Glowing Heat Vents on Sides
+    const sVentGeo = new THREE.BoxGeometry(0.24, 0.06, 0.4);
+    const sVent = new THREE.Mesh(sVentGeo, amberGlow);
+    sVent.position.set(0, 0, 0.05);
+    shotgun.add(sVent);
+
+    // Muzzle Point Center between Twin Barrels
+    const sTipGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.05, 12);
+    const sTip = new THREE.Mesh(sTipGeo, amberGlow);
+    sTip.rotation.x = Math.PI / 2;
+    sTip.position.set(0, 0.04, 0.58);
+    shotgun.add(sTip);
+    const shotgunMuzzle = sTip;
+
+    pivot.add(shotgun);
+
+    // ==========================================
+    // 3. PLASMA RAILGUN (Index 2)
+    // ==========================================
+    const railgun = new THREE.Group();
+
+    // Long Sci-Fi Rifle Chassis
+    const rBodyGeo = new THREE.BoxGeometry(0.16, 0.24, 0.95);
+    const rBody = new THREE.Mesh(rBodyGeo, darkMat);
+    railgun.add(rBody);
+
+    // Parallel Magnetic Acceleration Rails (Top & Bottom prongs extending forward)
+    const rRailGeo = new THREE.BoxGeometry(0.04, 0.04, 0.65);
+    const rRailTop = new THREE.Mesh(rRailGeo, metalMat);
+    rRailTop.position.set(0, 0.08, 0.65);
+
+    const rRailBot = new THREE.Mesh(rRailGeo, metalMat);
+    rRailBot.position.set(0, -0.08, 0.65);
+
+    railgun.add(rRailTop);
+    railgun.add(rRailBot);
+
+    // Crimson Glowing Capacitor Core Array
+    const rCoreGeo = new THREE.BoxGeometry(0.18, 0.12, 0.45);
+    const rCore = new THREE.Mesh(rCoreGeo, crimsonGlow);
+    rCore.position.set(0, 0, 0.05);
+    railgun.add(rCore);
+
+    // Long Beam Emitter Muzzle Tip
+    const rTipGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.12, 12);
+    const rTip = new THREE.Mesh(rTipGeo, crimsonGlow);
+    rTip.rotation.x = Math.PI / 2;
+    rTip.position.set(0, 0, 0.95);
+    railgun.add(rTip);
+    const railgunMuzzle = rTip;
+
+    pivot.add(railgun);
+
+    // Default visibility: Handgun visible, others hidden
+    handgun.visible = true;
+    shotgun.visible = false;
+    railgun.visible = false;
+
+    this.weaponsList = [handgun, shotgun, railgun];
+    this.muzzlePoints = [handgunMuzzle, shotgunMuzzle, railgunMuzzle];
+    this.muzzlePoint = handgunMuzzle;
+    this.currentWeaponIndex = 0;
+
+    return pivot;
   }
 
   createMarineMesh() {
@@ -198,29 +344,9 @@ export class Player {
     rightHand.position.set(0.35, 1.15, 0.6);
     group.add(rightHand);
 
-    // 5. Sci-Fi Plasma Handgun Mesh (Pistol receiver & energy cell)
-    const gunGeo = new THREE.BoxGeometry(0.14, 0.22, 0.65);
-    const gunMat = new THREE.MeshStandardMaterial({ color: 0x11151a, metalness: 0.9, roughness: 0.2 });
-    const gun = new THREE.Mesh(gunGeo, gunMat);
-    gun.position.set(0.35, 1.25, 0.65);
-    gun.castShadow = true;
-    group.add(gun);
-    this.gunMesh = gun;
-
-    // Glowing Plasma Energy Cell Cylinder (Attached to gun receiver)
-    const cellGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.35, 8);
-    const cell = new THREE.Mesh(cellGeo, glowMat);
-    cell.rotation.x = Math.PI / 2;
-    cell.position.set(0, -0.08, 0);
-    gun.add(cell);
-
-    // Glowing Muzzle Tip (Attached to gun barrel tip)
-    const tipGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8);
-    const tip = new THREE.Mesh(tipGeo, glowMat);
-    tip.rotation.x = Math.PI / 2;
-    tip.position.set(0, 0, 0.35);
-    gun.add(tip);
-    this.muzzlePoint = tip;
+    // 5. 3D Weapon Models (Handgun, Shotgun, Railgun)
+    this.weaponPivot = this.create3DWeapons();
+    group.add(this.weaponPivot);
 
     // Enable shadow casting AND shadow receiving on all player meshes
     group.traverse(child => {
@@ -231,6 +357,19 @@ export class Player {
     });
 
     return group;
+  }
+
+  switchWeapon(newIndex, soundEngine) {
+    if (newIndex === this.currentWeaponIndex || this.isSwitchingWeapon) return;
+
+    this.isSwitchingWeapon = true;
+    this.switchAnimTime = 0;
+    this.targetWeaponIndex = newIndex;
+    this.hasSwappedModelInAnim = false;
+
+    if (soundEngine) {
+      soundEngine.playReload();
+    }
   }
 
   triggerRecoil(kickAmount = 0.2) {
@@ -441,14 +580,49 @@ export class Player {
       }
     }
 
-    // Apply combined gun position (base + sway + recoil) & rotation (tilt + recoil)
-    if (this.gunMesh) {
-      this.gunMesh.position.x = 0.35 + this.gunSwayX;
-      this.gunMesh.position.y = 1.25 + this.gunSwayY;
-      this.gunMesh.position.z = 0.65 - this.recoilOffset;
+    // Weapon Change Animation: Dip down (holster), swap mesh, raise up (draw)
+    let switchOffset = 0;
+    let switchRotation = 0;
 
-      this.gunMesh.rotation.x = tiltX - this.recoilRotation;
-      this.gunMesh.rotation.z = tiltZ;
+    if (this.isSwitchingWeapon) {
+      this.switchAnimTime += delta;
+      const progress = Math.min(1.0, this.switchAnimTime / this.switchAnimDuration);
+
+      if (progress < 0.45) {
+        // Phase 1: Holster / Dip down
+        const p = progress / 0.45;
+        switchOffset = Math.sin(p * Math.PI / 2) * 0.45;
+        switchRotation = Math.sin(p * Math.PI / 2) * 1.1;
+      } else {
+        // Midpoint: Swap weapon mesh visibility & muzzle point
+        if (!this.hasSwappedModelInAnim) {
+          this.hasSwappedModelInAnim = true;
+          this.weaponsList.forEach((w, idx) => {
+            w.visible = (idx === this.targetWeaponIndex);
+          });
+          this.currentWeaponIndex = this.targetWeaponIndex;
+          this.muzzlePoint = this.muzzlePoints[this.targetWeaponIndex];
+        }
+
+        // Phase 2: Draw / Raise back up
+        const p = (progress - 0.45) / 0.55;
+        switchOffset = Math.cos(p * Math.PI / 2) * 0.45;
+        switchRotation = Math.cos(p * Math.PI / 2) * 1.1;
+      }
+
+      if (progress >= 1.0) {
+        this.isSwitchingWeapon = false;
+      }
+    }
+
+    // Apply combined gun position (base + sway + recoil - switchOffset) & rotation (tilt + recoil + switchRotation)
+    if (this.weaponPivot) {
+      this.weaponPivot.position.x = 0.35 + this.gunSwayX;
+      this.weaponPivot.position.y = 1.25 + this.gunSwayY - switchOffset;
+      this.weaponPivot.position.z = 0.65 - this.recoilOffset;
+
+      this.weaponPivot.rotation.x = tiltX - this.recoilRotation + switchRotation;
+      this.weaponPivot.rotation.z = tiltZ;
     }
   }
 }

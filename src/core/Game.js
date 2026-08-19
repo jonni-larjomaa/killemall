@@ -262,8 +262,13 @@ export class Game {
         if (started) this.player.startReloadAnimation();
       }
 
+      // Check for weapon selection switch
+      if (this.input.selectedWeaponIndex !== this.player.currentWeaponIndex && !this.player.isSwitchingWeapon) {
+        this.player.switchWeapon(this.input.selectedWeaponIndex, this.sound);
+      }
+
       // 5. Weapon Firing Trigger
-      if (this.input.isFiring) {
+      if (this.input.isFiring && !this.player.isSwitchingWeapon) {
         const muzzlePos = this.player.getMuzzleWorldPosition();
         const aimDir = this.input.aimPointWorld.clone().sub(muzzlePos);
         aimDir.y = 0;
