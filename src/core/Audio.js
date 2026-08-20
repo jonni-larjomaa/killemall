@@ -69,7 +69,7 @@ export class SoundEngine {
         attack: 0.002
       }).toDestination();
 
-      this.sfxGain = new Tone.Gain(1.25).connect(this.sfxCompressor);
+      this.sfxGain = new Tone.Gain(0.45).connect(this.sfxCompressor);
 
       const baseUrl = import.meta.env.BASE_URL || './';
       const getAudioUrl = (relPath) => `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}${relPath.startsWith('/') ? relPath.slice(1) : relPath}`;
@@ -84,6 +84,13 @@ export class SoundEngine {
         emptyClick: getAudioUrl('audio/sfx/empty_click.wav'),
         flashlight: getAudioUrl('audio/sfx/flashlight_click.wav')
       }).connect(this.sfxGain);
+
+      // Make gun firing sample players comfortably quiet
+      try {
+        if (this.samplePlayers.has('pulse')) this.samplePlayers.player('pulse').volume.value = -5;
+        if (this.samplePlayers.has('shotgun')) this.samplePlayers.player('shotgun').volume.value = -5;
+        if (this.samplePlayers.has('railgun')) this.samplePlayers.player('railgun').volume.value = -5;
+      } catch (e) {}
 
       // --- REAL TECHNO MUSIC PLAYER ---
       this.musicPlayer = new Tone.Player({

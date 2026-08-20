@@ -282,7 +282,7 @@ export class Game {
       this.renderer.updateCamera(this.player.position, delta);
 
       // 6. Update Projectiles & Enemies
-      this.weapons.update(delta, this.level, this.enemies, (enemy) => this.onEnemyKilled(enemy));
+      this.weapons.update(delta, this.level, this.enemies, (enemy) => this.onEnemyKilled(enemy), this.player);
 
       for (let i = this.enemies.length - 1; i >= 0; i--) {
         const e = this.enemies[i];
@@ -331,6 +331,18 @@ export class Game {
           if (p.isExplosive) {
             this.particles.spawnExplosion(p.position);
             this.sound.playExplosion();
+
+            // Friendly Fire / Splash Damage from enemy explosions to nearby player & barrels
+            const distToPlayer = this.player.position.distanceTo(p.position);
+            if (distToPlayer < 6.0) {
+              const dmg = Math.floor((1.0 - distToPlayer / 6.0) * p.damage);
+              if (dmg > 0) this.player.takeDamage(dmg);
+            }
+            this.level.barrels.forEach(b => {
+              if (!b.destroyed && b.position.distanceTo(p.position) < 6.0) {
+                this.weapons.triggerBarrelExplosion(b, this.level, this.enemies, this.player, (enemy) => this.onEnemyKilled(enemy));
+              }
+            });
           }
           this.renderer.scene.remove(p.mesh);
           this.enemyProjectiles.splice(i, 1);

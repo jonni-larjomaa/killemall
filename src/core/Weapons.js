@@ -194,7 +194,43 @@ export class WeaponSystem {
     return true;
   }
 
-  updateGrenades(delta, level, enemies, onKillCallback) {
+  triggerBarrelExplosion(b, level, enemies, player, onKillCallback) {
+    if (!b || b.destroyed) return;
+    b.destroyed = true;
+    b.mesh.visible = false;
+    if (b.light) level.scene.remove(b.light);
+    this.particles.spawnExplosion(b.position);
+    this.sound.playExplosion();
+
+    // 1. Splash damage to enemies
+    for (let enemy of enemies) {
+      if (!enemy.isDead && enemy.position.distanceTo(b.position) < 8.0) {
+        enemy.takeDamage(150, onKillCallback);
+      }
+    }
+
+    // 2. Friendly Fire: Splash damage to Player
+    if (player) {
+      const distToPlayer = player.position.distanceTo(b.position);
+      if (distToPlayer < 8.0) {
+        const dmg = Math.floor((1.0 - distToPlayer / 8.0) * 160);
+        if (dmg > 0) {
+          player.takeDamage(dmg);
+          if (this.sound) this.sound.playHit();
+          if (this.particles) this.particles.spawnSparks(player.position, 0xff0044);
+        }
+      }
+    }
+
+    // 3. Chain reaction explosion to other barrels
+    for (let other of level.barrels) {
+      if (!other.destroyed && other.position.distanceTo(b.position) < 8.0) {
+        this.triggerBarrelExplosion(other, level, enemies, player, onKillCallback);
+      }
+    }
+  }
+
+  updateGrenades(delta, level, enemies, onKillCallback, player) {
     for (let i = this.grenades.length - 1; i >= 0; i--) {
       const g = this.grenades[i];
       g.time += delta;
@@ -220,30 +256,39 @@ export class WeaponSystem {
         this.sound.playExplosion();
         if (g.renderer) g.renderer.triggerShake(1.2);
 
-        // Splash Damage to all enemies within 8.0 units (240 DMG!)
+        // 1. Splash Damage to all enemies within 8.0 units (240 DMG!)
         enemies.forEach(enemy => {
           if (!enemy.isDead && enemy.position.distanceTo(explodePos) < 8.0) {
             enemy.takeDamage(240, onKillCallback);
           }
         });
 
-        // Detonate nearby barrels
+        // 2. FRIENDLY FIRE: Splash Damage to Player within 8.0 units!
+        if (player) {
+          const distToPlayer = player.position.distanceTo(explodePos);
+          if (distToPlayer < 8.0) {
+            const dmg = Math.floor((1.0 - distToPlayer / 8.0) * 200);
+            if (dmg > 0) {
+              player.takeDamage(dmg);
+              if (this.sound) this.sound.playHit();
+              if (this.particles) this.particles.spawnSparks(player.position, 0xff0044);
+            }
+          }
+        }
+
+        // 3. Detonate nearby barrels (chain reaction)
         level.barrels.forEach(b => {
           if (!b.destroyed && b.position.distanceTo(explodePos) < 8.0) {
-            b.health = 0;
-            b.destroyed = true;
-            b.mesh.visible = false;
-            if (b.light) level.scene.remove(b.light);
-            this.particles.spawnExplosion(b.position);
+            this.triggerBarrelExplosion(b, level, enemies, player, onKillCallback);
           }
         });
       }
     }
   }
 
-  update(delta, level, enemies, onKillCallback) {
+  update(delta, level, enemies, onKillCallback, player) {
     this.updateReload(delta);
-    this.updateGrenades(delta, level, enemies, onKillCallback);
+    this.updateGrenades(delta, level, enemies, onKillCallback, player);
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
@@ -265,18 +310,7 @@ export class WeaponSystem {
           if (!b.destroyed && b.position.distanceTo(p.mesh.position) < 2.0) {
             b.health -= p.damage;
             if (b.health <= 0) {
-              b.destroyed = true;
-              b.mesh.visible = false;
-              if (b.light) level.scene.remove(b.light);
-              this.particles.spawnExplosion(b.position);
-              this.sound.playExplosion();
-
-              // Barrel splash damage to enemies
-              for (let enemy of enemies) {
-                if (enemy.position.distanceTo(b.position) < 8.0) {
-                  enemy.takeDamage(150, onKillCallback);
-                }
-              }
+              this.triggerBarrelExplosion(b, level, enemies, player, onKillCallback);
             }
           }
         }
