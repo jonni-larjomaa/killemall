@@ -202,10 +202,28 @@ export class UIManager {
       }
     }
 
-    // 6. Draw Terminal Pod (if active)
+    // 6. Draw Terminal Pod & Direction Guidance (if active)
     if (game.level.terminalPod) {
       const tx = center + (game.level.terminalPod.position.x - px) * scale;
       const ty = center + (game.level.terminalPod.position.z - pz) * scale;
+
+      const dirX = tx - center;
+      const dirY = ty - center;
+      const dist = Math.hypot(dirX, dirY);
+
+      if (dist > 8) {
+        const normX = dirX / dist;
+        const normY = dirY / dist;
+
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(center + normX * 10, center + normY * 10);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset line dash
+      }
 
       ctx.fillStyle = '#00f3ff';
       ctx.shadowColor = '#00f3ff';

@@ -47,7 +47,38 @@ export class Player {
     this.mesh = this.createMarineMesh();
     this.scene.add(this.mesh);
 
+    this.createTerminalPointer();
     this.setupFlashlight();
+  }
+
+  createTerminalPointer() {
+    const group = new THREE.Group();
+
+    // Sleek glowing 3D triangle arrow pointing along +Z axis
+    const headGeo = new THREE.ConeGeometry(0.3, 0.7, 3);
+    headGeo.rotateX(Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.9
+    });
+    const head = new THREE.Mesh(headGeo, mat);
+    group.add(head);
+
+    // Glowing outline
+    const wireGeo = new THREE.ConeGeometry(0.32, 0.72, 3);
+    wireGeo.rotateX(Math.PI / 2);
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    const wire = new THREE.Mesh(wireGeo, wireMat);
+    group.add(wire);
+
+    // Glowing point light attached to arrow
+    const light = new THREE.PointLight(0x00f3ff, 2.5, 6);
+    group.add(light);
+
+    group.visible = false;
+    this.scene.add(group);
+    this.terminalPointer = group;
   }
 
   create3DWeapons() {
@@ -623,6 +654,35 @@ export class Player {
 
       this.weaponPivot.rotation.x = tiltX - this.recoilRotation + switchRotation;
       this.weaponPivot.rotation.z = tiltZ;
+    }
+
+    // Terminal Pointer 3D Guidance Arrow Logic
+    if (level && level.terminalPod && this.terminalPointer) {
+      const termPos = level.terminalPod.position.clone();
+      termPos.y = 1.4;
+
+      const playerPos = this.position.clone();
+      playerPos.y = 1.4;
+
+      const dir = termPos.clone().sub(playerPos);
+      const dist = dir.length();
+      dir.y = 0;
+
+      if (dist > 2.2 && dir.lengthSq() > 0.001) {
+        dir.normalize();
+        this.terminalPointer.visible = true;
+
+        // Position arrow floating 2.4 units in front of player towards terminal
+        const arrowPos = playerPos.clone().add(dir.clone().multiplyScalar(2.4));
+        arrowPos.y = 1.6 + Math.sin(Date.now() * 0.007) * 0.18; // Hovering Bob
+
+        this.terminalPointer.position.copy(arrowPos);
+        this.terminalPointer.lookAt(termPos);
+      } else {
+        this.terminalPointer.visible = false;
+      }
+    } else if (this.terminalPointer) {
+      this.terminalPointer.visible = false;
     }
   }
 }
