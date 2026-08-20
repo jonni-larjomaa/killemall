@@ -91,14 +91,11 @@ export class SoundEngine {
         loop: true,
         volume: -4,
         onload: () => {
-          if (this.musicStarted) {
-            Tone.getTransport().stop();
-            if (this.musicPlayer.state !== 'started') {
-              try {
-                this.musicPlayer.start();
-              } catch (e) {
-                console.warn("Music play on load error:", e);
-              }
+          if (this.musicStarted && this.musicPlayer.state !== 'started') {
+            try {
+              this.musicPlayer.start();
+            } catch (e) {
+              console.warn("Music play on load error:", e);
             }
           }
         }
@@ -204,109 +201,10 @@ export class SoundEngine {
         envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
       }).connect(this.sfxGain);
 
-      // --- TECHNO MUSIC ENGINE ---
-      this.initTechnoTrack();
-
       this.initialized = true;
     } catch (e) {
       console.warn("Tone.js initialization warning:", e);
     }
-  }
-
-  initTechnoTrack() {
-    Tone.getTransport().bpm.value = 125; // Deeper, heavier industrial techno tempo
-
-    // 1. Kick Drum - Heavy deep sub kick
-    this.technoKick = new Tone.MembraneSynth({
-      pitchDecay: 0.05,
-      octaves: 6,
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.001, decay: 0.28, sustain: 0 }
-    }).connect(this.musicGain);
-
-    // 2. Off-beat Open Hat
-    this.technoOpenHat = new Tone.NoiseSynth({
-      noise: { type: 'white' },
-      envelope: { attack: 0.005, decay: 0.16, sustain: 0 }
-    }).connect(this.musicGain);
-
-    // 3. 16th Note Closed Hat
-    this.technoClosedHat = new Tone.MetalSynth({
-      frequency: 200,
-      envelope: { attack: 0.001, decay: 0.04, release: 0.01 },
-      harmonicity: 4.5,
-      modulationIndex: 24,
-      resonance: 3500,
-      octaves: 1.2
-    }).connect(this.musicGain);
-
-    // 4. Snare / Clap on 2 & 4
-    this.technoSnare = new Tone.NoiseSynth({
-      noise: { type: 'pink' },
-      envelope: { attack: 0.005, decay: 0.2, sustain: 0 }
-    }).connect(this.musicGain);
-
-    // 5. Deep Rolling Sub-Bass Synth
-    this.technoBass = new Tone.MonoSynth({
-      oscillator: { type: 'sawtooth' },
-      filter: { Q: 5, type: 'lowpass', frequency: 220 },
-      filterEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.1, baseFrequency: 35, octaves: 4.2 }
-    }).connect(this.musicGain);
-
-    // 6. Sci-Fi Synth Lead Stabs
-    this.technoLead = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'square' },
-      envelope: { attack: 0.005, decay: 0.18, sustain: 0.02, release: 0.05 }
-    }).connect(this.musicGain);
-
-    // SEQUENCES & LOOPS
-    // Deep Sub Kick (Quarter notes)
-    const kickLoop = new Tone.Loop((time) => {
-      this.technoKick.triggerAttackRelease("G0", "8n", time);
-    }, "4n");
-
-    // Open Hat (Off-beats: 8n offset)
-    const openHatLoop = new Tone.Loop((time) => {
-      this.technoOpenHat.triggerAttackRelease("16n", time);
-    }, "4n");
-
-    // Closed Hat (16th note driving engine)
-    const closedHatSeq = new Tone.Sequence((time, note) => {
-      if (note) this.technoClosedHat.triggerAttackRelease("32n", time, 0.35);
-    }, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "16n");
-
-    // Snare (Beats 2 & 4)
-    const snareSeq = new Tone.Sequence((time, hit) => {
-      if (hit) this.technoSnare.triggerAttackRelease("8n", time, 0.65);
-    }, [null, 1, null, 1], "4n");
-
-    // Deep Rolling 16th Sub-Bassline (C minor sub-bass register)
-    const bassNotes = [
-      "C0", "C0", "C1", "C0", "Eb0", "C0", "F0", "G0",
-      "C0", "C0", "C1", "Eb0", "C0", "G0", "Ab0", "Eb0"
-    ];
-    const bassSeq = new Tone.Sequence((time, note) => {
-      this.technoBass.triggerAttackRelease(note, "16n", time, 0.9);
-    }, bassNotes, "16n");
-
-    // Dark Sci-Fi Lead Stabs (2-bar loop)
-    const leadNotes = [
-      null, null, ["C4", "Eb4"], null, null, null, null, null,
-      null, null, ["C4", "G4"], null, null, ["Ab4", "C5"], null, null
-    ];
-    const leadSeq = new Tone.Sequence((time, chord) => {
-      if (chord) this.technoLead.triggerAttackRelease(chord, "16n", time, 0.5);
-    }, leadNotes, "8n");
-
-    this.musicLoops = [kickLoop, openHatLoop, closedHatSeq, snareSeq, bassSeq, leadSeq];
-
-    // Start all patterns relative to transport timeline
-    openHatLoop.start("0:0:2");
-    kickLoop.start(0);
-    closedHatSeq.start(0);
-    snareSeq.start(0);
-    bassSeq.start(0);
-    leadSeq.start(0);
   }
 
   // --- Real Techno Track Controls ---
@@ -321,23 +219,12 @@ export class SoundEngine {
 
     if (this.musicPlayer) {
       this.musicPlayer.autostart = true;
-      if (this.musicPlayer.loaded) {
-        if (this.musicPlayer.state !== 'started') {
-          try {
-            this.musicPlayer.start();
-          } catch (e) {
-            console.warn("Music start error:", e);
-          }
+      if (this.musicPlayer.loaded && this.musicPlayer.state !== 'started') {
+        try {
+          this.musicPlayer.start();
+        } catch (e) {
+          console.warn("Music start error:", e);
         }
-      } else {
-        // Fallback to synth transport while MP3 is loading over network
-        if (Tone.getTransport().state !== 'started') {
-          Tone.getTransport().start();
-        }
-      }
-    } else {
-      if (Tone.getTransport().state !== 'started') {
-        Tone.getTransport().start();
       }
     }
   }
@@ -348,9 +235,6 @@ export class SoundEngine {
       if (this.musicPlayer.state === 'started') {
         this.musicPlayer.pause();
       }
-    }
-    if (Tone.getTransport().state === 'started') {
-      Tone.getTransport().pause();
     }
   }
 
@@ -365,22 +249,12 @@ export class SoundEngine {
 
     if (this.musicPlayer) {
       this.musicPlayer.autostart = true;
-      if (this.musicPlayer.loaded) {
-        if (this.musicPlayer.state === 'paused' || this.musicPlayer.state === 'stopped') {
-          try {
-            this.musicPlayer.start();
-          } catch (e) {
-            console.warn("Music resume error:", e);
-          }
+      if (this.musicPlayer.loaded && (this.musicPlayer.state === 'paused' || this.musicPlayer.state === 'stopped')) {
+        try {
+          this.musicPlayer.start();
+        } catch (e) {
+          console.warn("Music resume error:", e);
         }
-      } else {
-        if (Tone.getTransport().state !== 'started') {
-          Tone.getTransport().start();
-        }
-      }
-    } else {
-      if (Tone.getTransport().state !== 'started') {
-        Tone.getTransport().start();
       }
     }
   }
@@ -392,9 +266,6 @@ export class SoundEngine {
       if (this.musicPlayer.state === 'started' || this.musicPlayer.state === 'paused') {
         this.musicPlayer.stop();
       }
-    }
-    if (Tone.getTransport().state === 'started' || Tone.getTransport().state === 'paused') {
-      Tone.getTransport().stop();
     }
   }
 
