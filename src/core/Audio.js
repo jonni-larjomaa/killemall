@@ -81,7 +81,7 @@ export class SoundEngine {
         railgun: getAudioUrl('audio/sfx/railgun.mp3'),
         reload: getAudioUrl('audio/sfx/reload.mp3'),
         explosion: getAudioUrl('audio/sfx/explosion.wav'),
-        emptyClick: getAudioUrl('audio/sfx/empty_click.wav'),
+        emptyClick: getAudioUrl('audio/sfx/empty_click.mp3'),
         flashlight: getAudioUrl('audio/sfx/flashlight_click.wav')
       }).connect(this.sfxGain);
 
@@ -90,7 +90,7 @@ export class SoundEngine {
         if (this.samplePlayers.has('pulse')) this.samplePlayers.player('pulse').volume.value = -5;
         if (this.samplePlayers.has('shotgun')) this.samplePlayers.player('shotgun').volume.value = -5;
         if (this.samplePlayers.has('railgun')) this.samplePlayers.player('railgun').volume.value = -5;
-      } catch (e) {}
+      } catch (e) { }
 
       // --- REAL TECHNO MUSIC PLAYER ---
       this.musicPlayer = new Tone.Player({

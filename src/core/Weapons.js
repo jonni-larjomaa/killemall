@@ -303,7 +303,6 @@ export class WeaponSystem {
       if (level.checkCollision(p.mesh.position, 0.3)) {
         shouldDestroy = true;
         this.particles.spawnSparks(p.mesh.position, p.color, 10);
-        this.sound.playHit();
 
         // Check if hit explosive barrel
         for (let b of level.barrels) {
