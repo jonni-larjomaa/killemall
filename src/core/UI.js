@@ -88,7 +88,13 @@ export class UIManager {
 
     // 2. Wave & Score
     this.waveNumText.innerText = game.currentWave;
-    this.enemyLeftText.innerText = game.enemies.length;
+    if (game.isIntermission) {
+      this.enemyLeftText.innerText = `NEXT WAVE: ${Math.ceil(game.intermissionTimer)}s`;
+      this.enemyLeftText.style.color = '#00f3ff';
+    } else {
+      this.enemyLeftText.innerText = `MUTANTS: ${game.enemies.length}`;
+      this.enemyLeftText.style.color = '';
+    }
     this.scoreValText.innerText = game.score.toLocaleString().padStart(6, '0');
     this.multValText.innerText = `x${game.multiplier.toFixed(1)}`;
 

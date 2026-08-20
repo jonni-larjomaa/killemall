@@ -137,6 +137,9 @@ export class Game {
     this.score = 0;
     this.multiplier = 1.0;
     this.terminalSpawned = false;
+    this.isIntermission = false;
+    this.intermissionTimer = 0;
+    this.intermissionDuration = 15;
     this.level.removeTerminalPod();
 
     document.getElementById('pause-screen').classList.add('hidden');
@@ -149,6 +152,8 @@ export class Game {
   nextWave() {
     this.currentWave++;
     this.terminalSpawned = false;
+    this.isIntermission = false;
+    this.intermissionTimer = 0;
     this.level.removeTerminalPod();
     this.ui.showBanner(`CONTAINMENT BREACH - WAVE ${this.currentWave}`, 'HUMANOID HOSTILES INBOUND!');
 
@@ -223,7 +228,6 @@ export class Game {
 
     this.level.removeTerminalPod();
     this.state = 'PLAYING';
-    this.nextWave();
   }
 
   run() {
@@ -352,11 +356,36 @@ export class Game {
       // 7. Update Particles
       this.particles.update(delta);
 
-      // 8. Terminal Pod & Wave Clear Check
-      if (this.enemies.length === 0 && !this.terminalSpawned) {
+      // 8. Terminal Pod & Wave Intermission Check
+      if (this.enemies.length === 0 && !this.isIntermission) {
+        this.isIntermission = true;
+        this.intermissionTimer = this.intermissionDuration;
         this.terminalSpawned = true;
-        this.level.spawnTerminalPod(new THREE.Vector3(0, 0, 0));
-        this.ui.showBanner("WAVE CLEARED!", "UPGRADE TERMINAL DEPLOYED AT DECK CENTER (PRESS E)");
+
+        // Pick random valid floor sector for terminal pod
+        const possiblePositions = [
+          new THREE.Vector3(0, 0, 0),       // Deck Center Hub
+          new THREE.Vector3(0, 0, -45),     // North Armory
+          new THREE.Vector3(0, 0, 45),      // South Cryo Room
+          new THREE.Vector3(45, 0, 0),      // East Generator Hall
+          new THREE.Vector3(-45, 0, 0),     // West Vault Sector
+          new THREE.Vector3(-35, 0, -35),   // NW Sector
+          new THREE.Vector3(35, 0, -35),    // NE Sector
+          new THREE.Vector3(-35, 0, 35),    // SW Sector
+          new THREE.Vector3(35, 0, 35)      // SE Sector
+        ];
+        const randomPos = possiblePositions[Math.floor(Math.random() * possiblePositions.length)];
+        this.level.spawnTerminalPod(randomPos);
+        this.ui.showBanner("WAVE CLEARED!", "NEXT WAVE IN 15S — UPGRADE TERMINAL DEPLOYED AT RANDOM SECTOR!");
+      }
+
+      if (this.isIntermission) {
+        this.intermissionTimer -= delta;
+        if (this.intermissionTimer <= 0) {
+          this.isIntermission = false;
+          this.level.removeTerminalPod();
+          this.nextWave();
+        }
       }
 
       if (this.level.terminalPod) {
